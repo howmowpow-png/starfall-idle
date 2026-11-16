@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Starfall Idle">
+<meta name="theme-color" content="#0b0a1f">
+<title>Starfall Idle</title>
+<style>
+:root{
+  --bg:#0b0a1f; --panel:#15132e; --panel2:#1e1b40; --line:#2d2a5a; --text:#f1efff; --dim:#9a96c4;
+  --gold:#ffd24a; --star:#8fe3ff; --R1:#c3d2ea; --R2:#6f8fc4; --SR1:#d3a2ff; --SR2:#7a3fe0; --SSR1:#ffe9a0; --SSR2:#f0a91e;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;font-size:14px;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;overscroll-behavior:none}
+body{position:fixed;inset:0}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;margin:0;touch-action:manipulation;cursor:pointer}
+[data-act]{cursor:pointer}
+textarea{font:12px ui-monospace,Menlo,monospace;-webkit-user-select:text;user-select:text}
+
+#app{position:fixed;top:0;bottom:0;left:0;right:0;margin:0 auto;max-width:540px;display:flex;flex-direction:column;
+  padding-left:var(--sal);padding-right:var(--sar);background:var(--bg)}
+
+/* ---------- top bar ---------- */
+#topbar{flex:0 0 auto;padding:calc(var(--sat) + 4px) 8px 4px;display:flex;align-items:center;gap:6px;background:#0b0a1f;z-index:5}
+.cur{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:5px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:999px;padding:0 10px;height:34px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.cur b{overflow:hidden;text-overflow:ellipsis}
+.cur.gold b{color:var(--gold)} .cur.star b{color:var(--star)}
+.cur.stage{flex:0 0 auto;font-size:12px;color:var(--dim)} .cur.stage b{color:var(--text);font-size:14px}
+.bump{animation:bump .25s ease-out}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+#gear{flex:0 0 44px;height:44px;font-size:22px;border-radius:12px}
+#gear:active{background:var(--panel2)}
+
+/* ---------- battle ---------- */
+#battle{flex:0 0 auto;height:42%;min-height:250px;max-height:400px;position:relative;overflow:hidden;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#070824 0%,#151049 45%,#3a1d63 80%,#6a2c62 100%);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+#battle:before{content:"";position:absolute;left:-10%;right:-10%;bottom:-40px;height:120px;pointer-events:none;
+  background:radial-gradient(60% 100% at 20% 100%,#120b2c 60%,transparent 61%),radial-gradient(55% 90% at 78% 100%,#1a0f38 60%,transparent 61%)}
+#sky{position:absolute;inset:0;pointer-events:none}
+#sky i{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;animation:tw 3s ease-in-out infinite}
+#sky .moon{position:absolute;right:26px;top:36px;width:34px;height:34px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#fffbe6,#ffe9a8 60%,#d9b765);box-shadow:0 0 30px 8px rgba(255,235,170,.25);opacity:.85}
+@keyframes tw{0%,100%{opacity:.25}50%{opacity:1}}
+#bhead{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:6px 10px 0}
+#stagelbl{font-weight:800;font-size:15px;text-shadow:0 1px 3px #000}
+#stagelbl small{font-weight:600;color:var(--dim);margin-left:6px;font-size:12px}
+#stagelbl.boss{color:#ff8a8a}
+#autobtn{min-height:44px;margin:-8px -4px -8px 0;padding:0 4px;display:flex;align-items:center}
+#autobtn span{display:block;padding:5px 10px;border-radius:999px;background:rgba(0,0,0,.4);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--dim)}
+#autobtn.on span{color:#9dffb0;border-color:#3d8f55;background:rgba(30,90,50,.45)}
+#hpwrap{position:relative;z-index:3;margin:4px auto 0;width:74%;max-width:300px;text-align:center;pointer-events:none}
+#ename{font-size:12px;font-weight:700;text-shadow:0 1px 3px #000;margin-bottom:2px}
+#hpbar{height:14px;border-radius:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);overflow:hidden;position:relative}
+#hpfill{position:absolute;inset:0;transform-origin:left center;background:linear-gradient(180deg,#ff7b7b,#d92f4a);will-change:transform}
+#hptext{position:absolute;inset:0;font-size:10px;line-height:12px;font-weight:800;text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums}
+#timer{margin-top:3px;height:14px;border-radius:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,210,74,.5);overflow:hidden;position:relative}
+#timerfill{position:absolute;inset:0;transform-origin:left center;background:linear-gradient(180deg,#ffe07a,#f09a1e)}
+#timertext{position:absolute;inset:0;font-size:10px;line-height:12px;font-weight:800;text-shadow:0 1px 2px #000}
+#ezone{position:relative;z-index:2;flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+.enemy{position:relative;animation:bob 2.2s ease-in-out infinite}
+.enemy.pop{animation:epop .28s cubic-bezier(.3,1.5,.5,1),bob 2.2s ease-in-out .28s infinite}
+.enemy.dying{animation:edie .28s ease-in forwards}
+@keyframes bob{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-4px) scale(1.02,.98)}}
+@keyframes epop{0%{transform:scale(.2);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes edie{to{transform:scale(.1) rotate(25deg);opacity:0}}
+.blob{width:var(--es);height:var(--es);display:flex;align-items:center;justify-content:center;font-size:calc(var(--es)*.56);line-height:1;
+  border-radius:48% 52% 50% 50%/60% 60% 40% 40%;background-color:var(--c);
+  background-image:radial-gradient(circle at 32% 26%,rgba(255,255,255,.55),transparent 38%),radial-gradient(circle at 60% 90%,rgba(0,0,0,.35),transparent 60%);
+  box-shadow:inset 0 -6px 10px rgba(0,0,0,.25),0 10px 16px rgba(0,0,0,.45)}
+.blob.hit{animation:hit .12s linear}
+.blob.hit2{animation:hit2 .12s linear}
+@keyframes hit{0%{transform:translate(0,0)}25%{transform:translate(-4px,2px) scale(.97)}75%{transform:translate(4px,-2px)}100%{transform:translate(0,0)}}
+@keyframes hit2{0%{transform:translate(0,0)}25%{transform:translate(4px,2px) scale(.97)}75%{transform:translate(-4px,-2px)}100%{transform:translate(0,0)}}
+.enemy.boss .blob{box-shadow:inset 0 -6px 10px rgba(0,0,0,.25),0 10px 16px rgba(0,0,0,.45),0 0 26px 4px rgba(255,90,90,.55)}
+.crown{position:absolute;left:50%;top:0;transform:translate(-50%,-62%) rotate(-6deg);font-size:calc(var(--es)*.4);line-height:1;filter:drop-shadow(0 2px 3px #000);z-index:2}
+#floats{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
+.fl{position:absolute;font-weight:900;font-size:16px;color:#fff;text-shadow:0 1px 0 #000,0 0 6px rgba(0,0,0,.8);white-space:nowrap;
+  animation:flup .8s ease-out forwards;transform:translate(-50%,-50%);font-variant-numeric:tabular-nums}
+.fl.tap{font-size:19px;color:#dff3ff}
+.fl.crit{font-size:27px;color:var(--gold);text-shadow:0 2px 0 #7a4b00,0 0 12px rgba(255,200,60,.9);animation:flcrit .95s ease-out forwards;z-index:2}
+.fl.coin{font-size:14px;color:var(--gold);animation-duration:1s}
+.fl.starp{font-size:20px;color:var(--star);animation-duration:1.2s}
+@keyframes flup{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}15%{opacity:1;transform:translate(-50%,-70%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-260%) scale(1)}}
+@keyframes flcrit{0%{opacity:0;transform:translate(-50%,-30%) scale(.4)}15%{opacity:1;transform:translate(-50%,-80%) scale(1.5)}30%{transform:translate(-50%,-100%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-260%) scale(1.1)}}
+#nextbtn{position:absolute;right:8px;top:50%;z-index:7;min-height:44px;padding:0 12px;border-radius:14px;font-weight:800;font-size:13px;
+  background:linear-gradient(180deg,#ff8a5c,#d9342f);box-shadow:0 3px 0 #7a1512,0 6px 14px rgba(0,0,0,.5);animation:pulse 1.2s ease-in-out infinite}
+#nextbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #7a1512}
+@keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
+#bfoot{position:relative;z-index:3;padding:0 8px 6px;text-align:center}
+#bstats{font-size:11px;font-weight:700;color:#d8d4ff;text-shadow:0 1px 2px #000;margin-bottom:3px;white-space:nowrap}
+#bstats span{margin:0 5px}
+#prow{display:flex;justify-content:center;gap:6px}
+.mini{width:46px;height:50px;border-radius:10px;padding:2px;position:relative}
+.mini .cin{border-radius:8px;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;line-height:1.1}
+.mini small{font-size:9px;font-weight:800;line-height:1}
+.mini.empty{border:2px dashed rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:20px}
+
+/* shooting star in the sky */
+.sstar{position:absolute;left:0;top:0;width:96px;height:96px;margin:-48px 0 0 -48px;z-index:8;animation:sfly linear forwards;touch-action:manipulation}
+@keyframes sfly{from{transform:translate(var(--x0),var(--y0))}to{transform:translate(var(--x1),var(--y1))}}
+.sstar .tail{position:absolute;left:50%;top:50%;width:90px;height:4px;margin-top:-2px;transform-origin:left center;border-radius:4px;
+  background:linear-gradient(90deg,rgba(255,255,255,.95),rgba(143,227,255,.5) 40%,transparent)}
+.sstar .head{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px;border-radius:50%;
+  background:radial-gradient(circle,#fff 30%,#bdefff 55%,transparent 72%);box-shadow:0 0 16px 6px rgba(160,230,255,.8);animation:spulse .5s ease-in-out infinite}
+.sstar.golden .head{background:radial-gradient(circle,#fff 30%,#ffe27a 55%,transparent 72%);box-shadow:0 0 20px 8px rgba(255,210,74,.9)}
+.sstar.golden .tail{background:linear-gradient(90deg,#fff,rgba(255,210,74,.7) 40%,transparent)}
+@keyframes spulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+
+/* ---------- panel ---------- */
+#panel{flex:1 1 0;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px 12px 16px;background:var(--panel)}
+.sec{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:15px;margin:2px 0 8px}
+.sec span{font-size:12px;color:var(--dim);font-weight:600}
+.hint{font-size:12px;color:var(--dim);margin:6px 0 10px;line-height:1.35}
+.btn{min-height:44px;padding:6px 12px;border-radius:12px;font-weight:800;background:linear-gradient(180deg,#5d55d6,#3b33a6);
+  box-shadow:0 3px 0 #231d70;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;color:#fff}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #231d70}
+.btn small{font-size:11px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
+.btn.off{filter:grayscale(.7) brightness(.6)}
+.btn.gold{background:linear-gradient(180deg,#ffd76a,#e8961c);box-shadow:0 3px 0 #8a5200;color:#3b2200}
+.btn.gold small{color:#5a3500}
+.btn.cyan{background:linear-gradient(180deg,#5fd0ff,#2b7fd6);box-shadow:0 3px 0 #164a85}
+.btn.cyan small{color:#e8fbff}
+.btn.red{background:linear-gradient(180deg,#e0566a,#a8263c);box-shadow:0 3px 0 #5e0f1e}
+.btn.ghost{background:var(--panel2);box-shadow:0 3px 0 #0d0b22;border:1px solid var(--line)}
+.btn.wide{display:flex;width:100%}
+
+/* hero card */
+.card{width:var(--w);height:calc(var(--w)*1.5);font-size:calc(var(--w)/10);padding:.32em;border-radius:1.1em;position:relative;flex:0 0 auto;
+  background:linear-gradient(160deg,var(--R1),var(--R2));box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.card.SR,.mini.SR{background:linear-gradient(160deg,var(--SR1),var(--SR2))}
+.card.R,.mini.R{background:linear-gradient(160deg,var(--R1),var(--R2))}
+.card.SSR,.mini.SSR{background:linear-gradient(115deg,#ffd76a,#fff6c9,#ff9ad5,#9ad5ff,#b6ffb0,#ffd76a,#fff6c9,#ff9ad5);background-size:400% 400%;animation:shim 3.5s linear infinite}
+@keyframes shim{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+.card .cin{width:100%;height:100%;border-radius:.85em;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff}
+.card.SSR .cin:after{content:"";position:absolute;top:-20%;bottom:-20%;width:45%;left:-60%;transform:skewX(-20deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:sheen 2.8s ease-in-out infinite}
+@keyframes sheen{0%,55%{left:-60%}100%{left:130%}}
+.el-fire .cin{background:linear-gradient(170deg,#ff8a45,#c22a1a)}
+.el-water .cin{background:linear-gradient(170deg,#49aaff,#1c47b8)}
+.el-wind .cin{background:linear-gradient(170deg,#58dd86,#157a43)}
+.el-light .cin{background:linear-gradient(170deg,#fff6cf,#e0a93c);color:#4a3200}
+.el-dark .cin{background:linear-gradient(170deg,#7445c9,#231047)}
+.crar{position:absolute;left:.45em;top:.3em;font-size:1.15em;font-weight:900;font-style:italic;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.el-light .crar{text-shadow:none}
+.clv{position:absolute;right:.45em;top:.35em;font-size:1.05em;font-weight:800;opacity:.9}
+.cemo{font-size:4em;line-height:1.15;filter:drop-shadow(0 .06em .08em rgba(0,0,0,.4))}
+.cname{font-size:1.38em;font-weight:800;max-width:96%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1em}
+.cstars{font-size:1.2em;letter-spacing:.05em;color:rgba(0,0,0,.28);line-height:1.2}
+.cstars b{color:#ffe14a;text-shadow:0 0 .2em #a86a00,0 1px 1px rgba(0,0,0,.6)}
+.card.locked{background:#2a2845;box-shadow:none}
+.card.locked .cin{background:#0e0d1c;color:#4c4a6e}
+.card.locked .cemo{filter:brightness(0) opacity(.55);position:relative}
+.card.locked .q{position:absolute;top:30%;left:0;right:0;text-align:center;font-size:3em;font-weight:900;color:#6d6a99}
+.card.sel{outline:3px solid #fff;outline-offset:1px}
+.card .inp{position:absolute;right:-.3em;bottom:-.3em;background:#2ecc71;color:#042;border-radius:999px;font-size:1.1em;font-weight:900;padding:.15em .5em;border:2px solid #0b0a1f}
+
+/* heroes list */
+.hrow{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:8px;margin-bottom:8px}
+.hrow.inparty{border-color:#4b7f5c}
+.htop{display:flex;gap:10px;align-items:center}
+.hinfo{flex:1;min-width:0}
+.hname{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{display:inline-block;font-size:10px;font-weight:900;font-style:italic;padding:1px 6px;border-radius:6px;margin-right:4px;vertical-align:1px;color:#111}
+.tag.R{background:var(--R1)} .tag.SR{background:var(--SR1)} .tag.SSR{background:linear-gradient(90deg,#ffd76a,#ff9ad5,#9ad5ff)}
+.hsub{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hstat{font-size:13px;margin-top:3px;font-variant-numeric:tabular-nums}
+.hstat b{color:var(--gold)} .hstat i{font-style:normal;color:var(--dim);font-size:11px;margin-left:6px}
+.hbtns{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:6px;margin-top:8px}
+
+/* party */
+.pslots{display:flex;gap:6px;justify-content:space-between;margin-bottom:8px}
+.pslot{border-radius:12px;position:relative}
+.pslot.sel{outline:3px solid #fff;outline-offset:2px}
+.pempty{width:var(--w);height:calc(var(--w)*1.5);border:2px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--dim)}
+.bonus{display:flex;justify-content:space-between;font-size:12px;padding:6px 10px;border-radius:10px;color:var(--dim);border:1px solid transparent}
+.bonus.on{background:rgba(46,204,113,.14);border-color:#2e9c5c;color:#b9ffd0;font-weight:800}
+.pstats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{font-size:11px;font-weight:700;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 9px}
+.grid{display:flex;flex-wrap:wrap;gap:8px}
+
+/* summon tab */
+.banner{border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;position:relative;overflow:hidden;border:1px solid #6b5a2a;
+  background:radial-gradient(120% 140% at 0% 0%,#4b3a8f,#1a1440 55%,#0d0a26)}
+.banner:before{content:"";position:absolute;inset:0;background:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 60%,#fff,transparent),radial-gradient(1px 1px at 50% 80%,#fff,transparent),radial-gradient(1px 1px at 35% 60%,#fff,transparent);opacity:.7}
+.binfo{position:relative;flex:1;min-width:0}
+.btitle{font-size:18px;font-weight:900;background:linear-gradient(90deg,#ffe9a0,#ff9ad5,#9ad5ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bfeat{font-size:12px;margin-top:3px;line-height:1.35} .bfeat b{color:var(--gold)}
+.pity{display:inline-block;margin-top:8px;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(255,210,74,.15);border:1px solid rgba(255,210,74,.5);color:var(--gold)}
+.sbtns{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;margin:10px 0}
+.sbtns .btn{min-height:56px;font-size:15px}
+.glowpulse{animation:gp 1s ease-in-out infinite}
+@keyframes gp{0%,100%{box-shadow:0 3px 0 #8a5200,0 0 0 0 rgba(255,210,74,.8)}50%{box-shadow:0 3px 0 #8a5200,0 0 0 9px rgba(255,210,74,0)}}
+details{background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+summary{min-height:44px;display:flex;align-items:center;padding:0 12px;font-weight:700;list-style:none;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"▾";margin-left:auto;color:var(--dim)}
+details[open] summary:after{content:"▴"}
+.dbody{padding:0 12px 10px;font-size:12px;line-height:1.6;color:#cfcbf0}
+.hist{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)}
+.cR{color:#a9c1ea} .cSR{color:#d3a2ff} .cSSR{color:var(--gold);font-weight:800}
+
+/* settings */
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:8px;min-height:56px}
+.row .lbl{font-weight:700} .row .lbl small{display:block;font-weight:500;color:var(--dim);font-size:11px;margin-top:2px}
+.box{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.box textarea{width:100%;height:64px;margin:8px 0;background:#0b0a1f;color:#cfe;border:1px solid var(--line);border-radius:8px;padding:6px;resize:none}
+.box .brow{display:flex;gap:8px;flex-wrap:wrap}
+.msg{font-size:12px;margin-top:6px;color:#9dffb0;min-height:14px} .msg.err{color:#ff9a9a}
+#ver{display:block;width:100%;min-height:44px;text-align:center;color:var(--dim);font-size:12px}
+.dbg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ---------- tab bar ---------- */
+#tabbar{flex:0 0 auto;display:flex;background:#0b0a1f;border-top:1px solid var(--line);padding-bottom:var(--sab);position:relative;z-index:5}
+.tab{flex:1;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:10px;font-weight:700;color:var(--dim);position:relative}
+.tab i{font-style:normal;font-size:21px;line-height:1.1;filter:grayscale(.6) opacity(.7);transition:transform .15s}
+.tab.on{color:#fff} .tab.on i{filter:none;transform:translateY(-2px) scale(1.12)}
+.tab.on:before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,#8fe3ff,#d3a2ff)}
+.dot{position:absolute;top:6px;right:26%;width:9px;height:9px;border-radius:50%;background:#ff4d6a;border:2px solid #0b0a1f}
+#tut{position:absolute;bottom:calc(100% + 8px);left:30%;transform:translateX(-50%);z-index:9;background:#fff;color:#22104a;font-weight:800;font-size:13px;
+  padding:9px 12px;border-radius:12px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.6);animation:tutb .9s ease-in-out infinite;pointer-events:none}
+#tut:after{content:"";position:absolute;left:50%;top:100%;margin-left:-8px;border:8px solid transparent;border-top-color:#fff}
+@keyframes tutb{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-7px)}}
+
+/* ---------- toasts & modal ---------- */
+#toasts{position:fixed;left:0;right:0;bottom:calc(var(--sab) + 70px);z-index:300;display:flex;flex-direction:column-reverse;align-items:center;gap:6px;pointer-events:none}
+.toast{background:rgba(20,16,50,.95);border:1px solid #6a63c9;border-radius:999px;padding:8px 16px;font-weight:700;font-size:13px;max-width:92%;text-align:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.5);animation:tin 3s ease forwards}
+@keyframes tin{0%{opacity:0;transform:translateY(-10px) scale(.9)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
+#modal{position:fixed;inset:0;z-index:200;background:rgba(4,3,16,.78);display:flex;align-items:center;justify-content:center;padding:20px;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.mcard{width:100%;max-width:340px;background:linear-gradient(180deg,#2a2466,#17133a);border:1px solid #6a63c9;border-radius:20px;padding:20px 18px 16px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.7);animation:mpop .3s cubic-bezier(.3,1.5,.5,1)}
+@keyframes mpop{from{transform:scale(.7);opacity:0}}
+.mcard h2{margin:0 0 6px;font-size:20px} .mcard p{margin:6px 0;color:#d5d1f5;line-height:1.4;font-size:13px}
+.mcard .big{font-size:30px;font-weight:900;color:var(--gold);margin:10px 0 4px;font-variant-numeric:tabular-nums}
+.mcard .big.s{color:var(--star)}
+.mcard .ico{font-size:44px;line-height:1.1}
+.mcard .btn{margin-top:12px}
+.mcard .card{margin:8px auto}
+
+/* ---------- summon overlay ---------- */
+#summon{position:fixed;inset:0;z-index:150;background:radial-gradient(120% 90% at 50% 40%,#1c1650,#070518 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(var(--sat) + 10px) 12px calc(var(--sab) + 12px);overflow:hidden}
+#summon.shake{animation:sshake .5s linear}
+@keyframes sshake{0%,100%{transform:none}15%{transform:translate(-7px,5px)}30%{transform:translate(7px,-5px)}45%{transform:translate(-5px,-4px)}60%{transform:translate(5px,4px)}80%{transform:translate(-2px,2px)}}
+#smc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#smflash{position:absolute;inset:0;pointer-events:none;opacity:0;background:#fff}
+#smflash.go{animation:flash .75s ease-out}
+@keyframes flash{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+#smtitle{position:relative;font-weight:900;font-size:16px;letter-spacing:.08em;color:#d8d4ff;height:24px;margin-bottom:10px;text-shadow:0 0 12px #6a63c9}
+#smcards{position:relative;display:flex;flex-wrap:wrap;gap:12px 8px;justify-content:center;max-width:400px;padding-top:8px}
+.fcard{width:var(--w);height:calc(var(--w)*1.5);perspective:700px;-webkit-perspective:700px;animation:fpop .4s cubic-bezier(.3,1.6,.5,1) backwards;position:relative}
+@keyframes fpop{from{transform:translateY(40px) scale(.3);opacity:0}}
+.fin{position:absolute;inset:0;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;transition:transform .55s cubic-bezier(.3,1.3,.5,1)}
+.fcard.flipped .fin{transform:rotateY(180deg)}
+.fback,.ffront{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:calc(var(--w)*.11)}
+.fback{background:linear-gradient(160deg,#3c3599,#15103f);border:2px solid #7d75e6;display:flex;align-items:center;justify-content:center;font-size:calc(var(--w)*.42);
+  box-shadow:inset 0 0 18px rgba(143,227,255,.3),0 4px 10px rgba(0,0,0,.5)}
+.fback:after{content:"";position:absolute;inset:5px;border:1px solid rgba(255,255,255,.25);border-radius:calc(var(--w)*.08)}
+.ffront{transform:rotateY(180deg)}
+.fcard.flipped.fSR .card{box-shadow:0 0 14px 3px rgba(190,120,255,.8)}
+.fcard.flipped.fSSR .card{box-shadow:0 0 22px 6px rgba(255,210,74,.95)}
+.fcard.charging{animation:charge .85s linear;z-index:3}
+.fcard.charging .fback{border-color:#ffd76a;animation:cglow .85s ease-in forwards}
+@keyframes charge{0%{transform:none}10%{transform:translate(-2px,1px) rotate(-2deg)}20%{transform:translate(2px,-1px) rotate(2deg)}30%{transform:translate(-3px,1px) rotate(-3deg)}40%{transform:translate(3px,-1px) rotate(3deg)}
+  50%{transform:translate(-4px,2px) rotate(-4deg) scale(1.05)}60%{transform:translate(4px,-2px) rotate(4deg) scale(1.07)}70%{transform:translate(-5px,2px) rotate(-5deg) scale(1.1)}80%{transform:translate(5px,-2px) rotate(5deg) scale(1.12)}90%{transform:translate(-5px,0) rotate(-5deg) scale(1.14)}100%{transform:scale(1.16)}}
+@keyframes cglow{0%{box-shadow:0 0 0 0 rgba(255,210,74,0)}100%{box-shadow:0 0 34px 14px rgba(255,220,110,1),inset 0 0 30px rgba(255,230,150,1);background:linear-gradient(160deg,#fff3c0,#ffb53d)}}
+.badge{position:absolute;left:50%;top:-9px;transform:translateX(-50%) scale(0);white-space:nowrap;font-size:10px;font-weight:900;padding:2px 7px;border-radius:999px;z-index:4;
+  border:1.5px solid #0b0a1f;transition:transform .3s cubic-bezier(.3,1.8,.5,1) .35s}
+.fcard.flipped .badge{transform:translateX(-50%) scale(1)}
+.badge.new{background:#ffe14a;color:#4a2a00} .badge.awk{background:#5fd0ff;color:#04284a} .badge.max{background:#ffb347;color:#4a2000}
+#smnote{position:relative;min-height:32px;margin-top:10px;font-size:12px;color:#cfcbf0;text-align:center;max-width:340px;line-height:1.35}
+#smbtns{position:relative;display:flex;gap:10px;margin-top:6px;min-height:48px}
+#smbtns .btn{min-width:120px;min-height:48px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div class="cur gold" id="curgold">🪙 <b id="tgold">0</b></div>
+    <div class="cur star" id="curstar">🌠 <b id="tstars">0</b></div>
+    <div class="cur stage">Stage <b id="tstage">1</b></div>
+    <button id="gear" data-act="tab" data-tab="settings" aria-label="Settings">⚙️</button>
+  </div>
+
+  <div id="battle">
+    <div id="sky"></div>
+    <div id="bhead">
+      <div id="stagelbl"></div>
+      <button id="autobtn" data-act="auto"><span></span></button>
+    </div>
+    <div id="hpwrap">
+      <div id="ename"></div>
+      <div id="hpbar"><div id="hpfill"></div><div id="hptext"></div></div>
+      <div id="timer" hidden><div id="timerfill"></div><div id="timertext"></div></div>
+    </div>
+    <div id="ezone"></div>
+    <button id="nextbtn" data-act="next" hidden></button>
+    <div id="bfoot">
+      <div id="bstats"></div>
+      <div id="prow" data-act="tab" data-tab="party"></div>
+    </div>
+    <div id="floats"></div>
+  </div>
+
+  <div id="panel"></div>
+
+  <div id="tabbar">
+    <div id="tut" hidden>Free 10-pull! Tap Summon 👇</div>
+    <button class="tab" data-act="tab" data-tab="heroes"><i>⚔️</i>Heroes</button>
+    <button class="tab" data-act="tab" data-tab="summon"><i>🌠</i>Summon<span class="dot" id="sdot" hidden></span></button>
+    <button class="tab" data-act="tab" data-tab="party"><i>🛡️</i>Party</button>
+    <button class="tab" data-act="tab" data-tab="collection"><i>📖</i>Collection</button>
+    <button class="tab" data-act="tab" data-tab="settings"><i>⚙️</i>Settings</button>
+  </div>
+</div>
+
+<div id="summon" hidden>
+  <canvas id="smc"></canvas>
+  <div id="smtitle"></div>
+  <div id="smcards"></div>
+  <div id="smnote"></div>
+  <div id="smbtns">
+    <button class="btn ghost" id="smskip" data-act="sm-skip">Skip</button>
+    <button class="btn gold" id="smagain" data-act="sm-again" hidden></button>
+  </div>
+  <div id="smflash"></div>
+</div>
+<div id="modal" hidden></div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   CONFIG — every tunable number lives here.
+   ===================================================================== */
+const CONFIG = {
+  version: '1.0.0',            // shown in Settings (tap 5x for debug)
+  saveVersion: 1,              // bump when the save format changes
+  saveKey: 'starfallIdleSave', // localStorage key
+  autosaveSec: 10,             // autosave interval (seconds)
+
+  // ---- Battle ----
+  enemiesPerStage: 10,         // normal kills needed to clear a stage
+  bossEvery: 10,               // every Nth stage is a boss stage
+  dragonEvery: 50,             // every Nth stage the boss is a dragon
+  bossHpMult: 8,               // boss HP multiplier
+  bossTimerSec: 30,            // boss time limit
+  bossGoldMult: 5,             // boss gold multiplier
+  enemyHpBase: 10,             // EnemyHP(n) = base * growth^(n-1)
+  enemyHpGrowth: 1.18,
+  goldHpDivisor: 10,           // GoldPerKill(n) = ceil(EnemyHP(n) / divisor)
+  tapDpsFraction: 0.05,        // tap damage = max(tapMin, fraction * party DPS)
+  tapMin: 1,
+  critBaseChance: 0,           // base crit chance (Rogues add to it)
+  critMult: 3,                 // crit damage multiplier
+  hitIntervalSec: 0.5,         // how often party damage numbers pop / crits roll
+  respawnSec: 0.3,             // delay between an enemy dying and the next appearing
+
+  // ---- Heroes ----
+  partySize: 5,
+  rarities: {                  // rate = summon chance, baseDPS/baseCost feed the formulas below
+    R:   { rate: 0.79, baseDPS: 1,  baseCost: 5  },
+    SR:  { rate: 0.18, baseDPS: 5,  baseCost: 20 },
+    SSR: { rate: 0.03, baseDPS: 20, baseCost: 60 },
+  },
+  costGrowth: 1.08,            // LevelUpCost(level) = baseCost * growth^level
+  milestoneEvery: 25,          // DPS x milestoneMult every N levels
+  milestoneMult: 2,
+  awakenBonus: 0.5,            // +50% DPS per awakening
+  maxAwaken: 5,
+  passive: {                   // class passives (active only while in the party)
+    warriorOwnDps: 0.25,       // Warrior: +25% own DPS
+    mageBossDmg: 0.50,         // Mage: +50% own damage vs bosses
+    archerTap: 0.10,           // Archer: +10% party tap damage each
+    rogueCrit: 0.05,           // Rogue: +5% party crit chance each
+    healerPartyDps: 0.10,      // Healer: +10% party DPS each
+  },
+  team: {                      // only the single best bonus applies
+    element3: 0.25,            // 3+ of one element
+    element5: 0.75,            // 5 of one element
+    classes5: 0.40,            // 5 different classes
+  },
+
+  // ---- Shooting stars ----
+  startStars: 500,             // new player gift
+  startHero: 'tomo',           // new players own this hero
+  skyStarMinSec: 60,           // a shooting star crosses the sky every min..max seconds
+  skyStarMaxSec: 120,
+  skyStarVisibleSec: 4,        // how long it takes to cross
+  skyStarValue: 5,
+  skyStarGoldenChance: 0.05,
+  skyStarGoldenValue: 25,
+  bossFirstClearStars: 25,
+  dailyStars: 50,              // once per local calendar day
+
+  // ---- Summoning ----
+  pullCost: 50,
+  tenPullCost: 500,
+  pitySSR: 60,                 // this many pulls without an SSR -> guaranteed SSR
+  featured: 'aurelia',         // featured SSR on the standard banner
+  featuredChance: 0.5,         // chance an SSR is the featured one
+  dupGoldMinutes: 10,          // max-awakened duplicate -> this many minutes of farm income
+  historyMax: 50,
+
+  // ---- Offline ----
+  offlineRate: 0.5,            // fraction of farm rate paid while away
+  offlineCapHours: 8,
+  offlineMinSec: 60,           // minimum time away before offline pay applies
+};
+
+/* ---------- static data ---------- */
+const CLASSES = {
+  warrior: { emoji: '⚔️', name: 'Warrior', desc: '+25% own DPS' },
+  mage:    { emoji: '🔮', name: 'Mage',    desc: '+50% own damage vs bosses' },
+  archer:  { emoji: '🏹', name: 'Archer',  desc: '+10% party tap damage' },
+  rogue:   { emoji: '🗡️', name: 'Rogue',   desc: '+5% party crit chance' },
+  healer:  { emoji: '✨', name: 'Healer',  desc: '+10% party DPS' },
+};
+const ELEMENTS = { fire: 'Fire', water: 'Water', wind: 'Wind', light: 'Light', dark: 'Dark' };
+const HEROES = [
+  ['aurelia','Aurelia','Starborn Saint','SSR','light','healer'],
+  ['kurogane','Kurogane','Eclipse Ronin','SSR','dark','warrior'],
+  ['seraphine','Seraphine','Tempest Archmage','SSR','wind','mage'],
+  ['ignis','Ignis','Phoenix Huntress','SSR','fire','archer'],
+  ['lyra','Lyra','Frostbow','SR','water','archer'],
+  ['garrick','Garrick','Ironvow','SR','light','warrior'],
+  ['mira','Mira','Hexweaver','SR','dark','mage'],
+  ['rin','Rin','Swiftfang','SR','wind','rogue'],
+  ['coral','Coral','Tidesinger','SR','water','healer'],
+  ['haruto','Haruto','Emberblade','SR','fire','warrior'],
+  ['pip','Pip','Apprentice Mage','R','fire','mage'],
+  ['tomo','Tomo','Village Guard','R','light','warrior'],
+  ['elsa','Elsa','Novice Cleric','R','light','healer'],
+  ['finn','Finn','Forest Scout','R','wind','archer'],
+  ['rook','Rook','Alley Pickpocket','R','dark','rogue'],
+  ['mei','Mei','Herbalist','R','water','healer'],
+  ['bram','Bram','Squire','R','water','warrior'],
+  ['kit','Kit','Fox Ranger','R','wind','rogue'],
+].map(a => ({ id: a[0], short: a[1], title: a[2], rar: a[3], el: a[4], cls: a[5],
+              full: a[3] === 'SR' ? a[1] + ' ' + a[2] : a[1] + ', ' + a[2] }));
+const H = {}; HEROES.forEach(h => H[h.id] = h);
+const RAR_ORDER = { SSR: 0, SR: 1, R: 2 };
+const ENEMIES = [['🦠','Slime','#56c97f'],['👺','Goblin','#7f9c3a'],['🐺','Wolf','#7d8aa6'],['💀','Skeleton','#b9b3a3'],['🦇','Bat','#6b4a9c'],
+  ['🕷️','Spider','#8a3a4a'],['👻','Ghost','#8fb3d9'],['🐍','Serpent','#3a9c7a'],['🍄','Sporeling','#c4573f'],['🦂','Scorpion','#c48a3f']];
+const BOSSES = [['👹','Ogre King','#b8323c'],['🧛','Vampire Lord','#5a2a7a'],['🦁','Chimera','#c98a2a'],['🦍','Titan Ape','#555a6a'],['🦑','Kraken','#a83a6a']];
+const DRAGON = ['🐉','Starfall Dragon','#1f8f6f'];
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const SUFFIX = ['', 'K', 'M', 'B', 'T'];
+function fmt(n) {
+  if (!isFinite(n)) return '∞';
+  if (n < 0) return '-' + fmt(-n);
+  if (n < 1000) return String(Math.floor(n + 1e-9));
+  let e = Math.floor(Math.log10(n) / 3), v = n / Math.pow(1000, e);
+  if (v >= 999.5) { e++; v /= 1000; }
+  if (v < 1) { v = 1; }
+  const s = v >= 99.95 ? v.toFixed(0) : v >= 9.995 ? v.toFixed(1) : v.toFixed(2);
+  let suf;
+  if (e < SUFFIX.length) suf = SUFFIX[e];
+  else { const i = e - SUFFIX.length; suf = String.fromCharCode(97 + Math.floor(i / 26) % 26) + String.fromCharCode(97 + i % 26); }
+  return s + suf;
+}
+function fmtTime(sec) {
+  sec = Math.floor(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h ? h + 'h ' + m + 'm' : m ? m + 'm ' + s + 's' : s + 's';
+}
+function todayStr() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function pct(x) { return Math.round(x * 100) + '%'; }
+
+/* =====================================================================
+   STATE + SAVING
+   ===================================================================== */
+let S;                  // saved state
+let isNewPlayer = false;
+function newState() {
+  const s = { v: CONFIG.saveVersion, gold: 0, stars: CONFIG.startStars, stage: 1, kills: 0, maxStage: 1, bossBest: 0,
+    auto: true, farming: false, heroes: {}, party: [], pity: 0, history: [], lastDaily: '', lastSeen: Date.now(), tut: false };
+  s.heroes[CONFIG.startHero] = { lvl: 1, awk: 0 };
+  for (let i = 0; i < CONFIG.partySize; i++) s.party.push(i === 0 ? CONFIG.startHero : null);
+  return s;
+}
+function sanitize(d) {   // builds a valid state from any (possibly old or broken) save object
+  const s = newState();
+  if (!d || typeof d !== 'object') return s;
+  const num = (k, min, int) => { if (typeof d[k] === 'number' && isFinite(d[k])) s[k] = Math.max(min, int ? Math.floor(d[k]) : d[k]); };
+  num('gold', 0); num('stars', 0, 1); num('stage', 1, 1); num('kills', 0, 1); num('maxStage', 1, 1); num('bossBest', 0, 1); num('pity', 0, 1); num('lastSeen', 0);
+  s.kills = Math.min(s.kills, CONFIG.enemiesPerStage); s.maxStage = Math.max(s.maxStage, s.stage); s.pity = Math.min(s.pity, CONFIG.pitySSR - 1);
+  ['auto', 'farming', 'tut'].forEach(k => { if (typeof d[k] === 'boolean') s[k] = d[k]; });
+  if (typeof d.lastDaily === 'string') s.lastDaily = d.lastDaily;
+  if (d.heroes && typeof d.heroes === 'object') {
+    s.heroes = {};
+    for (const id in d.heroes) if (H[id] && d.heroes[id]) {
+      const o = d.heroes[id];
+      s.heroes[id] = { lvl: Math.max(1, Math.floor(+o.lvl) || 1), awk: clamp(Math.floor(+o.awk) || 0, 0, CONFIG.maxAwaken) };
+    }
+    if (!Object.keys(s.heroes).length) s.heroes[CONFIG.startHero] = { lvl: 1, awk: 0 };
+  }
+  s.party = [];
+  for (let i = 0; i < CONFIG.partySize; i++) {
+    const id = Array.isArray(d.party) ? d.party[i] : null;
+    s.party.push(id && s.heroes[id] && s.party.indexOf(id) < 0 ? id : null);
+  }
+  if (!Array.isArray(d.party)) s.party[0] = Object.keys(s.heroes)[0];
+  if (Array.isArray(d.history)) s.history = d.history.filter(x => x && H[x.id]).slice(0, CONFIG.historyMax).map(x => ({ id: x.id, t: +x.t || 0 }));
+  return s;
+}
+function loadGame() {
+  let raw = null;
+  try { raw = localStorage.getItem(CONFIG.saveKey); } catch (e) {}
+  if (raw) { try { S = sanitize(JSON.parse(raw)); return; } catch (e) {} }
+  S = newState(); isNewPlayer = true;
+}
+let storageOK = true;
+function saveGame() {
+  S.lastSeen = lastT;
+  try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(S)); storageOK = true; } catch (e) { storageOK = false; }
+}
+function exportCode() { return btoa(unescape(encodeURIComponent(JSON.stringify(S)))); }
+function importCode(code) {
+  try {
+    const d = JSON.parse(decodeURIComponent(escape(atob(String(code).trim()))));
+    if (!d || typeof d !== 'object' || !d.heroes || typeof d.stage !== 'number') return false;
+    S = sanitize(d); lastT = Date.now(); saveGame(); return true;
+  } catch (e) { return false; }
+}
+
+/* =====================================================================
+   GAME MATH
+   ===================================================================== */
+const isBoss = n => n % CONFIG.bossEvery === 0;
+const enemyHP = n => CONFIG.enemyHpBase * Math.pow(CONFIG.enemyHpGrowth, n - 1);
+const goldPerKill = n => Math.ceil(enemyHP(n) / CONFIG.goldHpDivisor);
+function lvlCost(id, k) {      // total cost of the next k levels (geometric sum)
+  const o = S.heroes[id], g = CONFIG.costGrowth, b = CONFIG.rarities[H[id].rar].baseCost;
+  return Math.ceil(b * Math.pow(g, o.lvl) * (Math.pow(g, k) - 1) / (g - 1));
+}
+function maxLevels(id) {       // how many levels the current gold can buy
+  const o = S.heroes[id], g = CONFIG.costGrowth, first = CONFIG.rarities[H[id].rar].baseCost * Math.pow(g, o.lvl);
+  let k = Math.floor(Math.log(S.gold * (g - 1) / first + 1) / Math.log(g));
+  if (!isFinite(k) || k < 0) k = 0;
+  while (k > 0 && lvlCost(id, k) > S.gold) k--;
+  return k;
+}
+function heroBaseDPS(id, inParty, boss) {   // hero's own DPS incl. own class passive (no party-wide bonuses)
+  const h = H[id], o = S.heroes[id];
+  let d = CONFIG.rarities[h.rar].baseDPS * o.lvl * Math.pow(CONFIG.milestoneMult, Math.floor(o.lvl / CONFIG.milestoneEvery)) * (1 + CONFIG.awakenBonus * o.awk);
+  if (inParty && h.cls === 'warrior') d *= 1 + CONFIG.passive.warriorOwnDps;
+  if (inParty && boss && h.cls === 'mage') d *= 1 + CONFIG.passive.mageBossDmg;
+  return d;
+}
+function teamBonus() {         // the single best team bonus
+  const ids = S.party.filter(Boolean), el = {}, cl = {};
+  ids.forEach(id => { el[H[id].el] = (el[H[id].el] || 0) + 1; cl[H[id].cls] = 1; });
+  const maxEl = Math.max(0, ...Object.values(el));
+  const opts = [
+    { key: 'element3', ok: maxEl >= 3, v: CONFIG.team.element3 },
+    { key: 'element5', ok: maxEl >= 5, v: CONFIG.team.element5 },
+    { key: 'classes5', ok: Object.keys(cl).length >= 5, v: CONFIG.team.classes5 },
+  ];
+  let best = null;
+  opts.forEach(o => { if (o.ok && (!best || o.v > best.v)) best = o; });
+  return { key: best ? best.key : null, mult: 1 + (best ? best.v : 0) };
+}
+function partyStats() {
+  const ids = S.party.filter(Boolean), c = { healer: 0, archer: 0, rogue: 0 };
+  ids.forEach(id => { if (c[H[id].cls] != null) c[H[id].cls]++; });
+  const tb = teamBonus();
+  return { ids, team: tb, partyMult: tb.mult * (1 + CONFIG.passive.healerPartyDps * c.healer),
+    tapMult: 1 + CONFIG.passive.archerTap * c.archer,
+    crit: clamp(CONFIG.critBaseChance + CONFIG.passive.rogueCrit * c.rogue, 0, 1) };
+}
+function partyDPS(boss) {
+  const ps = partyStats(); let d = 0;
+  ps.ids.forEach(id => d += heroBaseDPS(id, true, boss));
+  return d * ps.partyMult;
+}
+function heroShownDPS(id) {    // what the Heroes tab shows: contribution if in party, else raw
+  const inP = S.party.indexOf(id) >= 0;
+  return heroBaseDPS(id, inP, false) * (inP ? partyStats().partyMult : 1);
+}
+function tapDamage() { return Math.max(CONFIG.tapMin, CONFIG.tapDpsFraction * partyDPS(E && E.boss)) * partyStats().tapMult; }
+function critExpected() { return 1 + partyStats().crit * (CONFIG.critMult - 1); }
+function farmStage() { return isBoss(S.stage) ? Math.max(1, S.stage - 1) : S.stage; }
+function farmRate() {          // gold/sec at the current (non-boss) stage with the current party
+  const n = farmStage(), dps = partyDPS(false) * critExpected();
+  if (dps <= 0) return 0;
+  return goldPerKill(n) / (enemyHP(n) / dps + CONFIG.respawnSec);
+}
+
+/* =====================================================================
+   BATTLE
+   ===================================================================== */
+let E = null;            // current enemy {boss,max,hp,timer,dead,respawn,type}
+let spawnCount = 0, hitAcc = 0, hitFlip = false;
+let skyTimer = rand(CONFIG.skyStarMinSec, CONFIG.skyStarMaxSec);
+function spawn() {
+  const n = S.stage, boss = isBoss(n);
+  let type;
+  if (boss) type = n % CONFIG.dragonEvery === 0 ? DRAGON : BOSSES[(n / CONFIG.bossEvery - 1) % BOSSES.length];
+  else type = ENEMIES[(Math.floor((n - 1) / 2) + (spawnCount % 3)) % ENEMIES.length];
+  const hp = enemyHP(n) * (boss ? CONFIG.bossHpMult : 1);
+  E = { boss, max: hp, hp, timer: boss ? CONFIG.bossTimerSec : 0, dead: false, respawn: 0, type };
+  spawnCount++; hitAcc = 0;
+  renderEnemy();
+}
+function setStage(n) { S.stage = Math.max(1, n); S.kills = 0; S.maxStage = Math.max(S.maxStage, S.stage); uiDirty = true; }
+function onKill(quiet) {
+  const n = S.stage, g = goldPerKill(n) * (E.boss ? CONFIG.bossGoldMult : 1);
+  S.gold += g;
+  E.dead = true; E.hp = 0; E.respawn = CONFIG.respawnSec;
+  if (!quiet) { floatText('+' + fmt(g) + ' 🪙', 'coin', 50 + rand(-8, 8), 62); const el = $('ezone').firstElementChild; if (el) el.className = 'enemy dying' + (E.boss ? ' boss' : ''); }
+  if (E.boss) {
+    if (n > S.bossBest) { S.bossBest = n; addStars(CONFIG.bossFirstClearStars); toast('👑 Boss first clear! +' + CONFIG.bossFirstClearStars + ' 🌠'); }
+    S.farming = false; setStage(n + 1);
+  } else {
+    S.kills = Math.min(CONFIG.enemiesPerStage, S.kills + 1);
+    if (S.kills >= CONFIG.enemiesPerStage && S.auto && !S.farming) setStage(n + 1);
+    uiDirty = true;
+  }
+}
+function bossFail() {
+  toast('⏱️ The boss escaped! Farming stage ' + (S.stage - 1) + '.');
+  S.farming = true; S.stage = Math.max(1, S.stage - 1); S.kills = 0; uiDirty = true;
+  spawn();
+}
+function goNext() {            // "Fight boss" / "Next stage" button
+  if (!canAdvance()) return;
+  S.farming = false; setStage(S.stage + 1); spawn(); saveGame();
+}
+function canAdvance() { return !isBoss(S.stage) && (S.farming || !S.auto) && (S.kills >= CONFIG.enemiesPerStage || S.stage < S.maxStage); }
+function damage(d) { if (!E || E.dead) return; E.hp -= d; if (E.hp <= E.max * 1e-9) onKill(false); }
+
+/* Advance the battle by dt real seconds. Works for any dt (smooth frames or one big catch-up step). */
+function simulate(dt) {
+  const quiet = dt > 1;                         // catch-up step: no popups, crits folded in as expected value
+  const mult = quiet ? critExpected() : 1;
+  let rem = dt, guard = 0;
+  while (rem > 1e-9 && guard++ < 2000) {
+    if (!E || E.dead) {
+      const t = Math.min(rem, E ? E.respawn : 0); rem -= t;
+      if (E) E.respawn -= t;
+      if (!E || E.respawn <= 1e-9) spawn();
+      continue;
+    }
+    const dps = partyDPS(E.boss) * mult;
+    const tKill = dps > 0 ? E.hp / dps : Infinity;
+    const step = Math.min(rem, tKill, E.boss ? E.timer : Infinity);
+    E.hp -= dps * step; rem -= step;
+    if (E.boss) E.timer -= step;
+    if (E.hp <= E.max * 1e-9) onKill(quiet);
+    else if (E.boss && E.timer <= 1e-9) bossFail();
+  }
+  if (!quiet && E && !E.dead) {                 // damage-number ticks + crit rolls for the party's auto-attacks
+    hitAcc += dt;
+    if (hitAcc >= CONFIG.hitIntervalSec) {
+      hitAcc -= CONFIG.hitIntervalSec;
+      const base = partyDPS(E.boss) * CONFIG.hitIntervalSec;
+      if (base > 0) {
+        if (Math.random() < partyStats().crit) {
+          floatText(fmt(base * CONFIG.critMult) + '!', 'crit', 50 + rand(-16, 16), 46 + rand(-6, 6));
+          hitShake(); damage(base * (CONFIG.critMult - 1));   // crit bonus lands as a burst
+        } else floatText(fmt(Math.max(1, base)), '', 50 + rand(-18, 18), 48 + rand(-8, 8));
+        if (E && !E.dead) hitShake();
+      }
+    }
+  }
+}
+function onTap(ev) {
+  if (!E || E.dead) return;
+  ev.preventDefault();
+  const r = $('battle').getBoundingClientRect();
+  const x = (ev.clientX - r.left) / r.width * 100, y = (ev.clientY - r.top) / r.height * 100;
+  let d = tapDamage(); const crit = Math.random() < partyStats().crit;
+  if (crit) d *= CONFIG.critMult;
+  floatText(fmt(d) + (crit ? '!' : ''), crit ? 'crit' : 'tap', x + rand(-3, 3), y - 6);
+  hitShake(); damage(d);
+}
+function hitShake() {
+  const b = document.querySelector('#ezone .blob'); if (!b) return;
+  hitFlip = !hitFlip; b.classList.remove('hit', 'hit2'); void b.offsetWidth; b.classList.add(hitFlip ? 'hit' : 'hit2');
+}
+function floatText(txt, cls, xPct, yPct) {
+  const box = $('floats');
+  if (box.childElementCount > 36 && cls !== 'crit' && cls !== 'starp') return;
+  const el = document.createElement('div');
+  el.className = 'fl ' + cls; el.textContent = txt;
+  el.style.left = clamp(xPct, 8, 92) + '%'; el.style.top = yPct + '%';
+  el.addEventListener('animationend', () => el.remove());
+  box.appendChild(el);
+}
+function addStars(n) { S.stars += n; bump('curstar'); }
+function bump(id) { const el = $(id); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+
+/* ---------- shooting stars in the sky ---------- */
+function spawnSkyStar() {
+  const b = $('battle'), W = b.clientWidth, golden = Math.random() < CONFIG.skyStarGoldenChance;
+  const ltr = Math.random() < 0.5, y0 = rand(40, 80), y1 = y0 + rand(30, 70);
+  const x0 = ltr ? -50 : W + 50, x1 = ltr ? W + 50 : -50;
+  const el = document.createElement('div');
+  el.className = 'sstar' + (golden ? ' golden' : '');
+  el.style.cssText = `--x0:${x0}px;--y0:${y0}px;--x1:${x1}px;--y1:${y1}px;animation-duration:${CONFIG.skyStarVisibleSec}s`;
+  const ang = Math.atan2(y0 - y1, x0 - x1) * 180 / Math.PI;   // tail points back along the path
+  el.innerHTML = `<div class="tail" style="transform:rotate(${ang}deg)"></div><div class="head"></div>`;
+  el.addEventListener('animationend', () => el.remove());
+  el.addEventListener('pointerdown', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const r = b.getBoundingClientRect(), v = golden ? CONFIG.skyStarGoldenValue : CONFIG.skyStarValue;
+    addStars(v);
+    floatText('+' + v + ' 🌠', 'starp', (ev.clientX - r.left) / r.width * 100, (ev.clientY - r.top) / r.height * 100);
+    if (golden) toast('🌟 Golden shooting star! +' + v + ' 🌠');
+    el.remove(); uiDirty = true;
+  });
+  b.appendChild(el);
+}
+
+/* ---------- offline / daily ---------- */
+function applyOffline(sec) {
+  const t = Math.min(sec, CONFIG.offlineCapHours * 3600);
+  const gold = farmRate() * CONFIG.offlineRate * t;
+  if (gold < 1) return;
+  S.gold += gold; bump('curgold');
+  showModal(`<div class="ico">🌙</div><h2>While you were away</h2>
+    <p>Your party kept fighting on stage ${farmStage()} for <b>${fmtTime(t)}</b>${sec > t ? ' (capped at ' + CONFIG.offlineCapHours + 'h)' : ''}.</p>
+    <div class="big">+${fmt(gold)} 🪙</div><p>Offline earnings are ${pct(CONFIG.offlineRate)} of your farm rate. Shooting stars only fall while you play.</p>
+    <button class="btn gold wide" data-act="modal-close">Collect</button>`);
+  uiDirty = true;
+}
+function checkDaily() {
+  const d = todayStr();
+  if (S.lastDaily === d) return;
+  S.lastDaily = d; addStars(CONFIG.dailyStars);
+  toast('📅 Daily login bonus: +' + CONFIG.dailyStars + ' 🌠'); uiDirty = true; saveGame();
+}
+
+/* =====================================================================
+   SUMMONING
+   ===================================================================== */
+function rollRarity(forceSRPlus) {
+  S.pity++;
+  if (S.pity >= CONFIG.pitySSR) return 'SSR';
+  const r = Math.random(), R = CONFIG.rarities;
+  if (r < R.SSR.rate) return 'SSR';
+  if (r < R.SSR.rate + R.SR.rate || forceSRPlus) return 'SR';
+  return 'R';
+}
+function pickHero(rar) {
+  if (rar === 'SSR') {
+    S.pity = 0;
+    if (Math.random() < CONFIG.featuredChance) return CONFIG.featured;
+    const others = HEROES.filter(h => h.rar === 'SSR' && h.id !== CONFIG.featured);
+    return others[Math.floor(Math.random() * others.length)].id;
+  }
+  const pool = HEROES.filter(h => h.rar === rar);
+  return pool[Math.floor(Math.random() * pool.length)].id;
+}
+function doSummon(n) {
+  if (SM.active && !SM.done) return;
+  const cost = n === 10 ? CONFIG.tenPullCost : CONFIG.pullCost * n;
+  if (S.stars < cost) { toast('Not enough shooting stars 🌠'); return; }
+  S.stars -= cost;
+  const dupGold = Math.max(1, Math.ceil(farmRate() * CONFIG.dupGoldMinutes * 60));
+  const results = []; let gotSRPlus = false;
+  for (let i = 0; i < n; i++) {
+    const rar = rollRarity(n === 10 && i === n - 1 && !gotSRPlus);   // 10-pull: last card is SR+ if none yet
+    if (rar !== 'R') gotSRPlus = true;
+    const id = pickHero(rar), own = S.heroes[id], res = { id, rar };
+    if (!own) {
+      S.heroes[id] = { lvl: 1, awk: 0 }; res.kind = 'new';
+      const empty = S.party.indexOf(null); if (empty >= 0) S.party[empty] = id;   // auto-fill empty party slots
+    } else if (own.awk < CONFIG.maxAwaken) { own.awk++; res.kind = 'awk'; }
+    else { S.gold += dupGold; res.kind = 'max'; res.gold = dupGold; }
+    results.push(res);
+    S.history.unshift({ id, t: Date.now() });
+  }
+  S.history.length = Math.min(S.history.length, CONFIG.historyMax);
+  S.tut = true;
+  saveGame(); uiDirty = true; renderAll();
+  playSummon(results, n);
+}
+
+/* ---------- summon animation ---------- */
+const SM = { active: false, done: false, phase: '', t: 0, dur: 0, results: [], n: 1, best: 'R', parts: [], trail: [], bg: [], ring: 0, revealed: 0, W: 0, H: 0, dpr: 1, timers: [] };
+const TINT = { R: [111, 183, 255], SR: [199, 125, 255], SSR: [255, 214, 90] };
+function smLater(fn, ms) { SM.timers.push(setTimeout(fn, ms)); }
+function playSummon(results, n) {
+  SM.timers.forEach(clearTimeout); SM.timers = [];
+  SM.active = true; SM.done = false; SM.results = results; SM.n = n;
+  SM.best = results.some(r => r.rar === 'SSR') ? 'SSR' : results.some(r => r.rar === 'SR') ? 'SR' : 'R';
+  SM.phase = 'star'; SM.t = 0; SM.dur = SM.best === 'SSR' ? 2.3 : SM.best === 'SR' ? 1.7 : 1.4;
+  SM.parts = []; SM.trail = []; SM.ring = 0; SM.revealed = 0;
+  $('summon').hidden = false; $('smcards').innerHTML = ''; $('smnote').textContent = ''; $('smtitle').textContent = '';
+  $('smskip').textContent = 'Skip'; $('smskip').className = 'btn ghost'; $('smagain').hidden = true;
+  const c = $('smc'); SM.dpr = Math.min(2, window.devicePixelRatio || 1);
+  SM.W = c.clientWidth; SM.H = c.clientHeight; c.width = SM.W * SM.dpr; c.height = SM.H * SM.dpr;
+  SM.bg = []; for (let i = 0; i < 70; i++) SM.bg.push({ x: Math.random() * SM.W, y: Math.random() * SM.H, r: rand(.4, 1.4), p: rand(0, 6.28) });
+}
+function smBurst(x, y, rar, count, speed) {
+  for (let i = 0; i < count; i++) {
+    const a = rand(0, 6.283), v = rand(.2, 1) * speed, c = TINT[rar];
+    SM.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: rand(.5, 1.3), size: rand(1.5, 4),
+      col: rar === 'SSR' && Math.random() < .6 ? `hsl(${Math.floor(rand(0, 360))},100%,70%)` : `rgb(${c[0]},${c[1]},${c[2]})` });
+  }
+  if (SM.parts.length > 700) SM.parts.splice(0, SM.parts.length - 700);
+}
+function smImpact() {
+  SM.phase = 'flash'; SM.ring = 0.001;
+  const f = $('smflash'), c = TINT[SM.best];
+  f.style.background = SM.best === 'R' ? '#fff' : `radial-gradient(circle at 50% 42%,#fff 20%,rgb(${c[0]},${c[1]},${c[2]}) 75%)`;
+  f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+  if (SM.best === 'SSR') { const s = $('summon'); s.classList.remove('shake'); void s.offsetWidth; s.classList.add('shake'); }
+  smBurst(SM.W * .5, SM.H * .42, SM.best, SM.best === 'SSR' ? 220 : 110, SM.best === 'SSR' ? 520 : 380);
+  smLater(smShowCards, 330);
+}
+function smShowCards() {
+  SM.phase = 'cards';
+  const n = SM.results.length, w = n === 1 ? Math.min(170, SM.W * .45) : Math.max(56, Math.min(84, Math.floor((SM.W - 24 - 24) / 4)));
+  $('smtitle').textContent = 'TAP TO REVEAL';
+  $('smcards').innerHTML = SM.results.map((r, i) => {
+    const badge = r.kind === 'new' ? '<span class="badge new">NEW</span>' : r.kind === 'awk' ? '<span class="badge awk">+1 Awakening</span>' : `<span class="badge max">+${fmt(r.gold)} 🪙</span>`;
+    return `<div class="fcard f${r.rar}" data-act="sm-flip" data-i="${i}" style="--w:${w}px;animation-delay:${i * 55}ms"><div class="fin">
+      <div class="fback">🌠</div><div class="ffront">${cardHTML(r.id, w)}${badge}</div></div></div>`;
+  }).join('');
+}
+function smFlip(i, fast) {
+  const el = $('smcards').children[i]; if (!el || el.dataset.s) return;
+  const r = SM.results[i]; el.dataset.s = '1';
+  const go = () => {
+    el.classList.remove('charging'); el.style.animation = 'none'; el.classList.add('flipped');
+    const b = el.getBoundingClientRect();
+    smBurst(b.left + b.width / 2, b.top + b.height / 2, r.rar, r.rar === 'SSR' ? 90 : r.rar === 'SR' ? 36 : 14, r.rar === 'SSR' ? 380 : 220);
+    if (r.rar === 'SSR') { const f = $('smflash'); f.style.background = 'radial-gradient(circle,#fff6c9,#ffd24a)'; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+    if (++SM.revealed >= SM.results.length) smFinish();
+  };
+  if (r.rar === 'SSR') { el.style.animation = ''; el.classList.add('charging'); smLater(go, fast ? 600 : 850); }   // SSR: shake + glow first
+  else go();
+}
+function smFinish() {
+  SM.done = true;
+  $('smtitle').textContent = SM.best === 'SSR' ? '✨ SSR! ✨' : 'SUMMON COMPLETE';
+  const maxed = SM.results.filter(r => r.kind === 'max');
+  $('smnote').textContent = maxed.length ? `Fully awakened duplicates were converted to gold — ${CONFIG.dupGoldMinutes} minutes of your current farm income each.` : '';
+  $('smskip').textContent = 'Done'; $('smskip').className = 'btn cyan';
+  const cost = SM.n === 10 ? CONFIG.tenPullCost : CONFIG.pullCost, a = $('smagain');
+  a.hidden = S.stars < cost; a.innerHTML = `Summon ×${SM.n}<small>${cost} 🌠</small>`;
+}
+function smSkip() {
+  if (SM.done) { SM.active = false; $('summon').hidden = true; renderAll(); return; }
+  if (SM.phase === 'star') { smImpact(); return; }
+  if (SM.phase === 'cards') { let k = 0; SM.results.forEach((r, i) => { const el = $('smcards').children[i]; if (el && !el.dataset.s) smLater(() => smFlip(i, true), 70 * k++); }); }
+}
+function smFrame(dt) {
+  const c = $('smc'), g = c.getContext('2d'), W = SM.W, Hh = SM.H, col = TINT[SM.best];
+  SM.t += dt;
+  g.setTransform(SM.dpr, 0, 0, SM.dpr, 0, 0); g.clearRect(0, 0, W, Hh);
+  g.fillStyle = '#fff';
+  for (const s of SM.bg) { g.globalAlpha = .25 + .35 * (1 + Math.sin(SM.t * 2 + s.p)) / 2; g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.283); g.fill(); }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'lighter';
+  if (SM.phase === 'star') {
+    const p = Math.min(1, SM.t / SM.dur), e = p * p * .7 + p * .3;     // accelerates as it falls
+    const x = W * 1.05 + (W * .5 - W * 1.05) * e + Math.sin(p * 3.14) * W * .06, y = -30 + (Hh * .42 + 30) * e;
+    SM.trail.push({ x, y, t: SM.t }); while (SM.trail.length > 46) SM.trail.shift();
+    const rainbow = SM.best === 'SSR';
+    g.lineCap = 'round';
+    for (let i = 1; i < SM.trail.length; i++) {
+      const a = SM.trail[i - 1], b = SM.trail[i], f = i / SM.trail.length;
+      g.strokeStyle = rainbow ? `hsla(${(SM.t * 260 + i * 9) % 360},100%,68%,${f * .9})` : `rgba(${col[0]},${col[1]},${col[2]},${f * .85})`;
+      g.lineWidth = (rainbow ? 16 : 10) * f + 1;
+      g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+    }
+    for (let i = 0; i < (rainbow ? 5 : 2); i++) SM.parts.push({ x: x + rand(-6, 6), y: y + rand(-6, 6), vx: rand(20, 110), vy: rand(-90, -10), life: 0, max: rand(.4, 1), size: rand(1, 3.2),
+      col: rainbow ? `hsl(${Math.floor((SM.t * 260 + rand(0, 90)) % 360)},100%,72%)` : `rgb(${col[0]},${col[1]},${col[2]})` });
+    const R = (rainbow ? 46 : 32) * (1 + .12 * Math.sin(SM.t * 30));
+    const gr = g.createRadialGradient(x, y, 0, x, y, R);
+    gr.addColorStop(0, '#fff'); gr.addColorStop(.25, `rgba(${col[0]},${col[1]},${col[2]},.95)`); gr.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0)`);
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, 6.283); g.fill();
+    if (rainbow) {            // cross flare on the golden star
+      g.strokeStyle = 'rgba(255,240,190,.8)'; g.lineWidth = 2;
+      const L = 70 + 20 * Math.sin(SM.t * 18);
+      g.beginPath(); g.moveTo(x - L, y); g.lineTo(x + L, y); g.moveTo(x, y - L); g.lineTo(x, y + L); g.stroke();
+    }
+    if (p >= 1) smImpact();
+  }
+  if (SM.ring > 0) {          // impact shockwave
+    SM.ring += dt * 1.6;
+    const a = 1 - SM.ring;
+    if (a > 0) { g.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},${a})`; g.lineWidth = 10 * a + 1; g.beginPath(); g.arc(W * .5, Hh * .42, SM.ring * Math.max(W, Hh) * .8, 0, 6.283); g.stroke(); }
+    else SM.ring = 0;
+  }
+  for (let i = SM.parts.length - 1; i >= 0; i--) {
+    const q = SM.parts[i]; q.life += dt;
+    if (q.life >= q.max) { SM.parts.splice(i, 1); continue; }
+    q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 1 - 1.8 * dt; q.vy = q.vy * (1 - 1.8 * dt) + 60 * dt;
+    g.globalAlpha = 1 - q.life / q.max; g.fillStyle = q.col; g.beginPath(); g.arc(q.x, q.y, q.size, 0, 6.283); g.fill();
+  }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+}
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+const ui = { tab: 'heroes', slotSel: null, rows: {}, debug: false, verTaps: 0, resetArm: 0, exportOpen: false };
+let uiDirty = true;
+function cardHTML(id, w, o) {
+  o = o || {}; const h = H[id], own = S.heroes[id], locked = o.locked;
+  const awk = own ? own.awk : 0;
+  return `<div class="card ${locked ? 'locked' : h.rar + ' el-' + h.el}${o.cls ? ' ' + o.cls : ''}" style="--w:${w}px"${o.attr ? ' ' + o.attr : ''}><div class="cin">
+    ${locked ? '' : `<span class="crar">${h.rar}</span>`}${o.lvl && own ? `<span class="clv">Lv${own.lvl}</span>` : ''}
+    <div class="cemo">${CLASSES[h.cls].emoji}</div>${locked ? '<div class="q">?</div>' : ''}
+    <div class="cname">${locked ? '???' : h.short}</div>
+    <div class="cstars">${locked ? '' : `<b>${'★'.repeat(awk)}</b>${'★'.repeat(CONFIG.maxAwaken - awk)}`}</div></div>${o.extra || ''}</div>`;
+}
+function colW(cols, gap) { const w = $('panel').clientWidth - 24; return Math.floor((w - gap * (cols - 1)) / cols); }
+function ownedSorted() {
+  return Object.keys(S.heroes).sort((a, b) => {
+    const pa = S.party.indexOf(a) >= 0 ? 0 : 1, pb = S.party.indexOf(b) >= 0 ? 0 : 1;
+    return pa - pb || RAR_ORDER[H[a].rar] - RAR_ORDER[H[b].rar] || S.heroes[b].lvl - S.heroes[a].lvl || (a < b ? -1 : 1);
+  });
+}
+function setText(el, t) { if (el && el.textContent !== t) el.textContent = t; }
+
+/* ---------- battle chrome ---------- */
+function renderEnemy() {
+  const z = $('ezone'), h = z.clientHeight || 120;
+  const es = Math.round(clamp(h * (E.boss ? .78 : .7), 56, E.boss ? 150 : 112));
+  z.innerHTML = `<div class="enemy pop${E.boss ? ' boss' : ''}" style="--es:${es}px;--c:${E.type[2]}">${E.boss ? '<div class="crown">👑</div>' : ''}<div class="blob">${E.type[0]}</div></div>`;
+  setText($('ename'), (E.boss ? '👑 ' : '') + E.type[1]);
+  $('timer').hidden = !E.boss;
+  uiDirty = true;
+}
+function renderPartyRow() {
+  $('prow').innerHTML = S.party.map(id => {
+    if (!id) return '<div class="mini empty">+</div>';
+    const h = H[id];
+    return `<div class="mini ${h.rar} el-${h.el}"><div class="cin">${CLASSES[h.cls].emoji}<small>Lv${S.heroes[id].lvl}</small></div></div>`;
+  }).join('');
+}
+function renderBattleChrome() {
+  const boss = isBoss(S.stage), sl = $('stagelbl');
+  sl.className = boss ? 'boss' : '';
+  sl.innerHTML = boss ? `BOSS · Stage ${S.stage}` : `Stage ${S.stage}<small>${S.kills}/${CONFIG.enemiesPerStage}${S.kills >= CONFIG.enemiesPerStage ? ' ✓' : ''}${S.farming ? ' · farming' : ''}</small>`;
+  const ab = $('autobtn'); ab.className = S.auto ? 'on' : ''; setText(ab.firstElementChild, 'Auto-advance ' + (S.auto ? 'ON' : 'OFF'));
+  const nb = $('nextbtn'), show = canAdvance();
+  nb.hidden = !show; if (show) setText(nb, isBoss(S.stage + 1) ? '⚔️ Fight boss' : 'Next stage ▶');
+  const ps = partyStats();
+  $('bstats').innerHTML = `<span>⚔️ ${fmt(partyDPS(boss))} DPS</span><span>👆 ${fmt(tapDamage())}</span><span>💥 ${pct(ps.crit)} crit</span>`;
+  $('sdot').hidden = S.stars < CONFIG.pullCost;
+  $('tut').hidden = S.tut || ui.tab === 'summon' || S.stars < CONFIG.tenPullCost || !$('modal').hidden;
+}
+let lastGoldTxt = '', lastStarTxt = '';
+function drawFrame() {
+  if (E) {
+    $('hpfill').style.transform = 'scaleX(' + (E.dead ? 0 : clamp(E.hp / E.max, 0, 1)) + ')';
+    setText($('hptext'), fmt(Math.max(0, Math.ceil(E.hp))) + ' / ' + fmt(Math.ceil(E.max)));
+    if (E.boss) {
+      $('timerfill').style.transform = 'scaleX(' + clamp(E.timer / CONFIG.bossTimerSec, 0, 1) + ')';
+      setText($('timertext'), '⏱ ' + Math.max(0, E.timer).toFixed(1) + 's');
+    }
+  }
+  const g = fmt(S.gold), s = fmt(S.stars);
+  if (g !== lastGoldTxt) { lastGoldTxt = g; $('tgold').textContent = g; }
+  if (s !== lastStarTxt) { lastStarTxt = s; $('tstars').textContent = s; }
+  setText($('tstage'), String(S.stage));
+}
+
+/* ---------- tabs ---------- */
+function renderAll() { renderPartyRow(); renderBattleChrome(); renderPanel(); }
+function setTab(t) {
+  ui.tab = t; ui.slotSel = null; ui.resetArm = 0;
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  renderPanel(); $('panel').scrollTop = 0; renderBattleChrome();
+}
+function renderPanel() {
+  const p = $('panel'); ui.rows = {};
+  if (ui.tab === 'heroes') p.innerHTML = heroesHTML();
+  else if (ui.tab === 'summon') p.innerHTML = summonHTML();
+  else if (ui.tab === 'party') p.innerHTML = partyHTML();
+  else if (ui.tab === 'collection') p.innerHTML = collectionHTML();
+  else p.innerHTML = settingsHTML();
+  if (ui.tab === 'heroes') {
+    p.querySelectorAll('.hrow').forEach(r => {
+      const b = r.querySelectorAll('.hbtns .btn');
+      ui.rows[r.dataset.id] = { lv: r.querySelector('.lv'), dps: r.querySelector('.dps'), ms: r.querySelector('.ms'), clv: r.querySelector('.clv'), b1: b[0], b10: b[1], bm: b[2] };
+    });
+  }
+  refreshPanel();
+}
+function refreshPanel() {      // cheap periodic refresh (no DOM rebuild, so taps are never lost)
+  if (ui.tab === 'heroes') {
+    setText($('hdps'), 'Party DPS ' + fmt(partyDPS(false)));
+    for (const id in ui.rows) {
+      const r = ui.rows[id], o = S.heroes[id]; if (!o) continue;
+      setText(r.lv, String(o.lvl)); setText(r.clv, 'Lv' + o.lvl); setText(r.dps, fmt(heroShownDPS(id)));
+      setText(r.ms, '×' + CONFIG.milestoneMult + ' DPS at Lv ' + (Math.floor(o.lvl / CONFIG.milestoneEvery) + 1) * CONFIG.milestoneEvery);
+      const c1 = lvlCost(id, 1), c10 = lvlCost(id, 10), m = maxLevels(id);
+      setBtn(r.b1, '+1', c1, S.gold >= c1); setBtn(r.b10, '+10', c10, S.gold >= c10);
+      setBtn(r.bm, m > 0 ? 'Max +' + m : 'Max', m > 0 ? lvlCost(id, m) : c1, m > 0);
+    }
+  } else if (ui.tab === 'summon') {
+    const b1 = $('sm1'), b10 = $('sm10');
+    if (b1) { b1.classList.toggle('off', S.stars < CONFIG.pullCost); b10.classList.toggle('off', S.stars < CONFIG.tenPullCost); b10.classList.toggle('glowpulse', !S.tut && S.stars >= CONFIG.tenPullCost); }
+  }
+}
+function setBtn(b, label, cost, ok) {
+  const t = label + '|' + fmt(cost);
+  if (b._t !== t) { b._t = t; b.innerHTML = `${label}<small>🪙 ${fmt(cost)}</small>`; }
+  b.classList.toggle('off', !ok);
+}
+function heroesHTML() {
+  return `<div class="sec">Heroes <span id="hdps"></span></div>` + ownedSorted().map(id => {
+    const h = H[id], inP = S.party.indexOf(id) >= 0;
+    return `<div class="hrow${inP ? ' inparty' : ''}" data-id="${id}"><div class="htop">${cardHTML(id, 52, { cls: 'sm', lvl: 1 })}
+      <div class="hinfo"><div class="hname"><span class="tag ${h.rar}">${h.rar}</span>${h.full}</div>
+      <div class="hsub">${CLASSES[h.cls].emoji} ${CLASSES[h.cls].name} · ${ELEMENTS[h.el]} · ${CLASSES[h.cls].desc}</div>
+      <div class="hstat">Lv <b class="lv"></b> · DPS <b class="dps"></b>${inP ? '<i>🛡️ in party</i>' : '<i>benched</i>'}</div>
+      <div class="hsub ms"></div></div></div>
+      <div class="hbtns"><button class="btn" data-act="lvl" data-id="${id}" data-n="1"></button><button class="btn" data-act="lvl" data-id="${id}" data-n="10"></button><button class="btn gold" data-act="lvl" data-id="${id}" data-n="max"></button></div></div>`;
+  }).join('');
+}
+function summonHTML() {
+  const f = H[CONFIG.featured], R = CONFIG.rarities;
+  return `<div class="banner">${cardHTML(f.id, 92)}<div class="binfo"><div class="btitle">Starfall Banner</div>
+    <div class="bfeat">Featured SSR: <b>${f.full}</b><br>${pct(CONFIG.featuredChance)} of all SSRs are ${f.short}.</div>
+    <div class="pity">SSR guaranteed in ${CONFIG.pitySSR - S.pity}</div></div></div>
+    <div class="sbtns"><button class="btn cyan" id="sm1" data-act="summon" data-n="1">Summon ×1<small>${CONFIG.pullCost} 🌠</small></button>
+    <button class="btn gold" id="sm10" data-act="summon" data-n="10">Summon ×10<small>${CONFIG.tenPullCost} 🌠 · SR+ guaranteed</small></button></div>
+    <details><summary>Rates &amp; rules</summary><div class="dbody">
+      <span class="cSSR">SSR ${+(R.SSR.rate * 100).toFixed(2)}%</span> · <span class="cSR">SR ${+(R.SR.rate * 100).toFixed(2)}%</span> · <span class="cR">R ${+(R.R.rate * 100).toFixed(2)}%</span><br>
+      • Pity: pull ${CONFIG.pitySSR} without an SSR is a guaranteed SSR.<br>• ×10 always contains at least one SR or better.<br>
+      • Duplicates give +1 Awakening (+${pct(CONFIG.awakenBonus)} DPS, max ${CONFIG.maxAwaken}).<br>• Duplicates of a fully awakened hero become gold worth ${CONFIG.dupGoldMinutes} minutes of farm income.<br>
+      • Shooting stars are earned only by playing — there is nothing to buy.</div></details>
+    <details><summary>History (last ${CONFIG.historyMax})</summary><div class="dbody">${S.history.length ? S.history.map((x, i) =>
+      `<div class="hist"><span class="c${H[x.id].rar}">${H[x.id].rar} · ${H[x.id].full}</span><span>#${i + 1}</span></div>`).join('') : 'No summons yet.'}</div></details>`;
+}
+function partyHTML() {
+  const w5 = colW(5, 6), w4 = colW(4, 8), ps = partyStats(), T = CONFIG.team;
+  const bonus = (key, label, v) => `<div class="bonus${ps.team.key === key ? ' on' : ''}"><span>${ps.team.key === key ? '✅ ' : ''}${label}</span><span>+${pct(v)} party DPS</span></div>`;
+  return `<div class="sec">Party <span>DPS ${fmt(partyDPS(false))}</span></div>
+    <div class="pslots">${S.party.map((id, i) => `<div class="pslot${ui.slotSel === i ? ' sel' : ''}" data-act="slot" data-i="${i}">${id ? cardHTML(id, w5, { lvl: 1 }) : `<div class="pempty" style="--w:${w5}px">+</div>`}</div>`).join('')}</div>
+    ${bonus('element3', '3+ heroes of one element', T.element3)}${bonus('element5', '5 heroes of one element', T.element5)}${bonus('classes5', '5 different classes', T.classes5)}
+    <div class="pstats"><span class="chip">Team bonus: ${ps.team.key ? '+' + pct(ps.team.mult - 1) : 'none'}</span><span class="chip">💥 Crit ${pct(ps.crit)}</span><span class="chip">👆 Tap ×${ps.tapMult.toFixed(1)}</span><span class="chip">✨ Healers ×${(ps.partyMult / ps.team.mult).toFixed(1)}</span></div>
+    <div class="hint">${ui.slotSel != null ? '<b>Slot ' + (ui.slotSel + 1) + ' selected</b> — now tap a hero below to put them there.' : 'Tap a hero to add or remove them. To swap, tap a slot first, then a hero. Only the best team bonus applies.'}</div>
+    <div class="grid">${ownedSorted().map(id => cardHTML(id, w4, { lvl: 1, attr: `data-act="phero" data-id="${id}"`, extra: S.party.indexOf(id) >= 0 ? '<span class="inp">✓</span>' : '' })).join('')}</div>`;
+}
+function collectionHTML() {
+  const w = colW(4, 8), n = Object.keys(S.heroes).length;
+  return `<div class="sec">Collection <span>${n} / ${HEROES.length}</span></div><div class="grid">${HEROES.map(h =>
+    cardHTML(h.id, w, { locked: !S.heroes[h.id], attr: `data-act="info" data-id="${h.id}"` })).join('')}</div>`;
+}
+function settingsHTML() {
+  return `<div class="sec">Settings</div>
+    <div class="row"><div class="lbl">Auto-advance<small>Move to the next stage after ${CONFIG.enemiesPerStage} kills</small></div><button class="btn ${S.auto ? 'cyan' : 'ghost'}" data-act="auto">${S.auto ? 'ON' : 'OFF'}</button></div>
+    <div class="box"><div class="lbl"><b>Export save</b></div>
+      ${ui.exportOpen ? `<textarea id="exptxt" readonly>${exportCode()}</textarea><div class="brow"><button class="btn cyan" data-act="copy">Copy</button><button class="btn ghost" data-act="export">Refresh</button></div><div class="msg" id="expmsg"></div>`
+        : `<div class="hint">Get a text code you can keep somewhere safe.</div><button class="btn ghost" data-act="export">Show save code</button>`}</div>
+    <div class="box"><div class="lbl"><b>Import save</b></div><textarea id="imptxt" placeholder="Paste a save code here" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+      <div class="brow"><button class="btn ghost" data-act="import">Import</button></div><div class="msg" id="impmsg"></div></div>
+    <div class="row"><div class="lbl">Reset save<small>Erase all progress. Cannot be undone.</small></div><button class="btn red" id="resetbtn" data-act="reset">${ui.resetArm ? 'Tap again to erase' : 'Reset'}</button></div>
+    ${storageOK ? '' : '<div class="hint">⚠️ Storage is unavailable in this browser mode — progress will not be saved. Use Export to keep a backup.</div>'}
+    <button id="ver" data-act="ver">Starfall Idle v${CONFIG.version} · save v${CONFIG.saveVersion}</button>
+    ${ui.debug ? `<div class="box"><div class="lbl"><b>🛠 Debug</b></div><div class="dbg" style="margin-top:8px">
+      <button class="btn ghost" data-act="dbg" data-k="gold">+1M gold</button><button class="btn ghost" data-act="dbg" data-k="stars">+5000 stars</button>
+      <button class="btn ghost" data-act="dbg" data-k="skip">Skip 10 stages</button><button class="btn ghost" data-act="dbg" data-k="offline">Simulate 1h offline</button>
+      <button class="btn ghost" data-act="dbg" data-k="pity">Reset pity</button><button class="btn ghost" data-act="dbg" data-k="sky">Spawn shooting star</button></div></div>` : ''}`;
+}
+
+/* ---------- modal / toast ---------- */
+const modalQ = [];
+function showModal(html) { modalQ.push(html); if ($('modal').hidden) nextModal(); }
+function nextModal() {
+  const m = $('modal');
+  if (!modalQ.length) { m.hidden = true; m.innerHTML = ''; renderBattleChrome(); return; }
+  m.innerHTML = '<div class="mcard">' + modalQ.shift() + '</div>'; m.hidden = false; renderBattleChrome();
+}
+function toast(txt) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = txt;
+  el.addEventListener('animationend', () => el.remove());
+  const box = $('toasts'); while (box.childElementCount >= 3) box.firstElementChild.remove();
+  box.appendChild(el);
+}
+function heroInfo(id) {
+  const h = H[id], own = S.heroes[id], c = CLASSES[h.cls];
+  if (!own) { showModal(`${cardHTML(id, 110, { locked: 1 })}<h2>???</h2><p>${h.rar} hero — not yet summoned.</p><button class="btn ghost wide" data-act="modal-close">Close</button>`); return; }
+  showModal(`${cardHTML(id, 120)}<h2>${h.full}</h2><p><span class="tag ${h.rar}">${h.rar}</span> ${ELEMENTS[h.el]} · ${c.emoji} ${c.name}</p>
+    <p>Passive: <b>${c.desc}</b> (while in the party)</p><p>Lv ${own.lvl} · Awakening ${own.awk}/${CONFIG.maxAwaken} · DPS ${fmt(heroShownDPS(id))}</p>
+    <button class="btn ghost wide" data-act="modal-close">Close</button>`);
+}
+
+/* ---------- actions ---------- */
+function act(a, el) {
+  switch (a) {
+    case 'tab': setTab(el.dataset.tab); break;
+    case 'auto': S.auto = !S.auto; if (S.auto && S.kills >= CONFIG.enemiesPerStage && !S.farming && !isBoss(S.stage)) { setStage(S.stage + 1); spawn(); }
+      renderBattleChrome(); if (ui.tab === 'settings') renderPanel(); saveGame(); break;
+    case 'next': goNext(); renderBattleChrome(); break;
+    case 'lvl': {
+      const id = el.dataset.id, k = el.dataset.n === 'max' ? maxLevels(id) : +el.dataset.n;
+      if (k < 1) return; const c = lvlCost(id, k);
+      if (S.gold < c) return;
+      S.gold -= c; S.heroes[id].lvl += k; refreshPanel(); renderPartyRow(); renderBattleChrome(); break;
+    }
+    case 'summon': doSummon(+el.dataset.n); break;
+    case 'sm-flip': if (SM.phase === 'cards') smFlip(+el.dataset.i); break;
+    case 'sm-skip': smSkip(); break;
+    case 'sm-again': if (SM.done) doSummon(SM.n); break;
+    case 'slot': { const i = +el.dataset.i; ui.slotSel = ui.slotSel === i ? null : i; renderPanel(); break; }
+    case 'phero': {
+      const id = el.dataset.id, idx = S.party.indexOf(id), sel = ui.slotSel;
+      if (sel != null) { if (idx >= 0) { S.party[idx] = S.party[sel]; } S.party[sel] = id; ui.slotSel = null; }
+      else if (idx >= 0) S.party[idx] = null;
+      else { const e = S.party.indexOf(null); if (e >= 0) S.party[e] = id; else { toast('Party is full — tap a slot first, then a hero to swap.'); return; } }
+      renderAll(); saveGame(); break;
+    }
+    case 'info': heroInfo(el.dataset.id); break;
+    case 'modal-close': nextModal(); break;
+    case 'export': ui.exportOpen = true; saveGame(); renderPanel(); break;
+    case 'copy': {
+      const t = $('exptxt'), done = ok => { const m = $('expmsg'); if (m) { m.textContent = ok ? 'Copied to clipboard ✓' : 'Could not copy — select the text and copy it manually.'; m.className = 'msg' + (ok ? '' : ' err'); } };
+      const fallback = () => { try { t.focus(); t.select(); t.setSelectionRange(0, 999999); done(document.execCommand('copy')); t.blur(); } catch (e) { done(false); } };
+      try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(() => done(true), fallback); else fallback(); } catch (e) { fallback(); }
+      break;
+    }
+    case 'import': {
+      const code = $('imptxt').value, m = $('impmsg');
+      if (!code.trim()) { m.textContent = 'Paste a save code first.'; m.className = 'msg err'; return; }
+      if (importCode(code)) { E = null; spawn(); renderAll(); $('impmsg').textContent = 'Save imported ✓'; toast('Save imported'); }
+      else { m.textContent = 'That code is not a valid save.'; m.className = 'msg err'; }
+      break;
+    }
+    case 'reset':
+      if (ui.resetArm && Date.now() - ui.resetArm < 4000) {
+        try { localStorage.removeItem(CONFIG.saveKey); } catch (e) {}
+        S = newState(); lastT = Date.now(); ui.resetArm = 0; E = null; spawn(); checkDaily(); saveGame(); setTab('heroes'); renderAll(); welcome();
+      } else { ui.resetArm = Date.now(); el.textContent = 'Tap again to erase'; setTimeout(() => { if (ui.resetArm && Date.now() - ui.resetArm >= 3900) { ui.resetArm = 0; const b = $('resetbtn'); if (b) b.textContent = 'Reset'; } }, 4000); }
+      break;
+    case 'ver': if (++ui.verTaps >= 5 && !ui.debug) { ui.debug = true; toast('🛠 Debug panel unlocked'); renderPanel(); $('panel').scrollTop = 99999; } break;
+    case 'dbg': {
+      const k = el.dataset.k;
+      if (k === 'gold') { S.gold += 1e6; bump('curgold'); }
+      else if (k === 'stars') addStars(5000);
+      else if (k === 'skip') { S.farming = false; setStage(S.stage + 10); spawn(); }
+      else if (k === 'offline') applyOffline(3600);
+      else if (k === 'pity') { S.pity = 0; toast('Pity reset'); }
+      else if (k === 'sky') spawnSkyStar();
+      renderBattleChrome(); saveGame(); break;
+    }
+  }
+}
+function welcome() {
+  showModal(`<div class="ico">🌠</div><h2>Welcome, Summoner!</h2><p>The stars have chosen you. <b>Tomo, Village Guard</b> is already fighting at your side.</p>
+    <div class="big s">+${CONFIG.startStars} 🌠</div><p>A gift of Shooting Stars — exactly enough for your first <b>10-pull</b>. Head to the <b>Summon</b> tab!</p>
+    <p>Tap enemies to hit harder, and tap shooting stars in the sky to catch them.</p><button class="btn gold wide" data-act="modal-close">Let's go!</button>`);
+}
+
+/* =====================================================================
+   MAIN LOOP — all logic runs on real elapsed time
+   ===================================================================== */
+let lastT = Date.now(), slowAcc = 0, saveAcc = 0, hiddenNow = false;
+function step() {
+  const now = Date.now(); let dt = (now - lastT) / 1000; lastT = now;
+  if (dt < 0) dt = 0;
+  if (dt >= CONFIG.offlineMinSec) { applyOffline(dt); dt = 0; saveAcc = CONFIG.autosaveSec; }  // was away: pay offline instead of simulating
+  if (dt > 0) simulate(dt);
+  const vis = Math.min(dt, 1);                 // things that only tick while actually on screen
+  skyTimer -= vis;
+  if (skyTimer <= 0) { skyTimer = rand(CONFIG.skyStarMinSec, CONFIG.skyStarMaxSec); if (!SM.active) spawnSkyStar(); else skyTimer = 5; }
+  slowAcc += dt; saveAcc += dt;
+  if (slowAcc >= 0.25) { slowAcc = 0; checkDaily(); refreshPanel(); uiDirty = true; }
+  if (saveAcc >= CONFIG.autosaveSec) { saveAcc = 0; saveGame(); }
+  if (uiDirty) { uiDirty = false; renderBattleChrome(); }
+  drawFrame();
+  if (SM.active) smFrame(Math.min(dt, 0.05));
+}
+function frame() { requestAnimationFrame(frame); if (!hiddenNow) step(); }
+
+function init() {
+  loadGame();
+  lastT = isNewPlayer ? Date.now() : (S.lastSeen || Date.now());   // first step() pays offline gold if we were away 60s+
+  if (lastT > Date.now()) lastT = Date.now();
+  // background stars
+  let sky = '<div class="moon"></div>';
+  for (let i = 0; i < 44; i++) sky += `<i style="left:${rand(0, 100).toFixed(1)}%;top:${rand(0, 78).toFixed(1)}%;animation-delay:${rand(-3, 0).toFixed(2)}s;${Math.random() < .2 ? 'width:3px;height:3px' : ''}"></i>`;
+  $('sky').innerHTML = sky;
+  // input
+  document.addEventListener('click', ev => { const el = ev.target.closest('[data-act]'); if (el) act(el.dataset.act, el); });
+  $('ezone').addEventListener('pointerdown', onTap);
+  ['gesturestart', 'gesturechange', 'dblclick'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+  document.addEventListener('contextmenu', e => { if (e.target.tagName !== 'TEXTAREA') e.preventDefault(); });
+  document.addEventListener('visibilitychange', () => {
+    hiddenNow = document.hidden;
+    if (hiddenNow) saveGame(); else step();
+  });
+  window.addEventListener('pagehide', saveGame);
+  window.addEventListener('pageshow', () => { hiddenNow = document.hidden; });
+  window.addEventListener('resize', () => { if (E) renderEnemy(); renderPanel(); });
+  // home-screen icon drawn at runtime (no image files)
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 180; const g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 0, 180); gr.addColorStop(0, '#0a0b2e'); gr.addColorStop(1, '#5a2a6e'); g.fillStyle = gr; g.fillRect(0, 0, 180, 180);
+    g.font = '110px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🌠', 90, 98);
+    const l = document.createElement('link'); l.rel = 'apple-touch-icon'; l.href = c.toDataURL('image/png'); document.head.appendChild(l);
+  } catch (e) {}
+  setTab('heroes'); spawn(); renderAll();
+  if (isNewPlayer) welcome();
+  checkDaily();
+  step(); saveGame();
+  requestAnimationFrame(frame);
+}
+init();
+</script>
+</body>
+</html>
